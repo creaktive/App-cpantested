@@ -24,7 +24,19 @@ use Pod::Usage qw(pod2usage);
 
 =head1 DESCRIPTION
 
-...
+Pre-filter the output from the L<cpan-outdated> utility, crossing it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
+
+=head1 CONFIGURATION FILE
+
+C<~/.cpan-tested.conf> can be used to persistently store L</OPTIONS>, in a quasi-L<perltidy> fashion:
+
+    # installed manually; don't mess
+    blacklist libintl-perl
+    blacklist IO-Socket-SSL
+    archname    # same architecture
+    perl        # same Perl version
+    no-osname   # ignore OS name string
+    no-osvers   # ignore OS version string
 
 =cut
 
@@ -42,7 +54,6 @@ if (open(my $rcfile, q(<), $rcname)) {
     close $rcfile;
 }
 
-
 =head1 OPTIONS
 
 =over 4
@@ -53,23 +64,26 @@ This.
 
 =item --blacklist=regexp
 
-...
+Force skipping of the module which I<dist> name matches C<regexp>.
+Can be issued multiple times.
 
 =item --[no]archname
 
-...
+Expect B<PASS> from testers with the same C<$Config{archname}>.
+Disabled by default.
 
 =item --[no]osname
 
-...
+Expect B<PASS> from testers with the same C<$Config{osname}>.
 
 =item --[no]osvers
 
-...
+Expect B<PASS> from testers with the same C<$Config{osvers}>.
+Disabled by default.
 
 =item --[no]perl
 
-...
+Expect B<PASS> from testers with the same C<$Config{perl}>.
 
 =back
 
@@ -164,5 +178,6 @@ sub fetch_results {
 * L<cpan-outdated>
 * L<cpanm>
 * L<cpant>
+* L<CPAN Testers Reports|http://cpantesters.org/>
 
 =cut

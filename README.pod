@@ -12,11 +12,11 @@ version 0.001
 
 =head1 SYNOPSIS
 
-    cpan-outdated | cpan-tested | cpanm
+    cpan-outdated | cpan-tested | cpanm -n
 
 =head1 DESCRIPTION
 
-...
+Pre-filter the output from the L<cpan-outdated> utility, crossing it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
 
 =head1 SEE ALSO
 
@@ -33,6 +33,10 @@ L<App::cpanminus>
 =item *
 
 L<App::cpantimes>
+
+=item *
+
+L<CPAN Testers Reports|http://cpantesters.org/>
 
 =back
 

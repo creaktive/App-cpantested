@@ -3,11 +3,11 @@ package App::cpantested;
 
 =head1 SYNOPSIS
 
-    cpan-outdated | cpan-tested | cpanm
+    cpan-outdated | cpan-tested | cpanm -n
 
 =head1 DESCRIPTION
 
-...
+Pre-filter the output from the L<cpan-outdated> utility, crossing it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
 
 =cut
 
@@ -24,6 +24,7 @@ use warnings qw(all);
 * L<App::cpanoutdated>
 * L<App::cpanminus>
 * L<App::cpantimes>
+* L<CPAN Testers Reports|http://cpantesters.org/>
 
 =cut
 
