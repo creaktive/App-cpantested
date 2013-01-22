@@ -27,7 +27,7 @@ $Data::Dumper::Sortkeys = 1;
 
 =head1 DESCRIPTION
 
-Pre-filter the output from the L<cpan-outdated> utility, crossing it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
+Pre-filter the output from the L<cpan-outdated> utility, joining it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
 
 =head1 CONFIGURATION FILE
 
@@ -87,6 +87,10 @@ Disabled by default.
 =item --[no]perl
 
 Expect B<PASS> from testers with the same C<$Config{perl}>.
+
+=item --verbose
+
+Dump what's happening to C<STDERR>.
 
 =back
 

@@ -7,7 +7,7 @@ package App::cpantested;
 
 =head1 DESCRIPTION
 
-Pre-filter the output from the L<cpan-outdated> utility, crossing it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
+Pre-filter the output from the L<cpan-outdated> utility, joining it with the results from the L<CPAN Testers Reports|http://cpantesters.org/>.
 
 By default, considers "installable" a distribution that has any test that:
 

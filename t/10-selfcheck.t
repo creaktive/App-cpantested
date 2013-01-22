@@ -3,25 +3,34 @@ use strict;
 use utf8;
 use warnings qw(all);
 
+use File::Spec::Functions;
+use IO::Socket::INET;
 use Test::More;
-use Test::Script::Run;
 
-my $reference = q(t/dists);
-ok(open(my $fh, q(<), $reference), q(reference file));
-my @reference;
-while (<$fh>) {
-    chomp;
-    push @reference => $_;
-}
+plan skip_all => q(no direct Internet connection)
+    unless IO::Socket::INET->new(
+        PeerHost  => q(cpantesters.org),
+        PeerPort  => 80,
+        Proto     => q(tcp),
+        Timeout   => 10,
+    );
+
+my $reference = catfile(qw(t dists));
+my $utility = catfile(qw(bin cpan-tested));
+
+ok(-f $reference, q(reference exists));
+ok(-f $utility, q(utility exists));
+
+my $fh;
+ok(open($fh, q(<), $reference), q(reference file));
+my @reference = <$fh>;
 close $fh;
-
 is(scalar @reference, 8, q(reference count));
 
-run_output_matches(
-    q(cpan-tested) => [$reference],
-    \@reference,
-    [],
-    q(),
-);
+ok(open($fh, q(-|), qq($^X $utility $reference)), q(pipe));
+my @tested = <$fh>;
+close $fh;
 
-done_testing 3;
+is_deeply(\@reference, \@tested, q(identity));
+
+done_testing 6;
