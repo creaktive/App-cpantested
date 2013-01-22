@@ -1,0 +1,168 @@
+#!/usr/bin/env perl
+# ABSTRACT: delegate testing to the cloud
+# PODNAME: cpan-tested
+use 5.008;
+use strict;
+use utf8;
+use warnings qw(all);
+
+use CPAN::DistnameInfo;
+use Carp qw(carp croak);
+use Config;
+use File::Spec::Functions;
+use Getopt::Long;
+use HTTP::Tiny;
+use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
+use JSON::PP qw(decode_json);
+use Pod::Usage qw(pod2usage);
+
+# VERSION
+
+=head1 SYNOPSIS
+
+    cpan-outdated | cpan-tested [options] | cpanm
+
+=head1 DESCRIPTION
+
+...
+
+=cut
+
+# parse the options file
+my $rcname = catfile($ENV{HOME}, q(.cpan-tested.conf));
+if (open(my $rcfile, q(<), $rcname)) {
+    while (<$rcfile>) {
+        s/\#.*$//x;
+        s/^\s+|\s+$//gx;
+        next unless $_;
+        my @pair = split /\s+/x, $_, 2;
+        $pair[0] = q(--) . $pair[0];
+        unshift @ARGV, @pair;
+    }
+    close $rcfile;
+}
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item --help
+
+This.
+
+=item --blacklist=regexp
+
+...
+
+=item --[no]archname
+
+...
+
+=item --[no]osname
+
+...
+
+=item --[no]osvers
+
+...
+
+=item --[no]perl
+
+...
+
+=back
+
+=cut
+
+my ($archname, $osname, $osvers, $perl) = qw(0 1 0 1);
+Getopt::Long::GetOptions(
+    q(h|help)       => \my $help,
+    q(b|blacklist=s)=> \my @blacklist,
+    q(archname!)    => \$archname,
+    q(osname!)      => \$osname,
+    q(osvers!)      => \$osvers,
+    q(perl!)        => \$perl,
+) or pod2usage();
+pod2usage(-verbose => 2) if $help;
+
+my $ua = HTTP::Tiny->new(
+    agent           => q(cpan-tested/) . $main::VERSION,
+    default_headers => { q(Accept-Encoding) => q(gzip) },
+);
+
+while (my $name = <>) {
+    chomp $name;
+    my $d = CPAN::DistnameInfo->new($name);
+    my %prop = $d->properties;
+    next unless defined $prop{dist};
+
+    # do not update blacklisted modules
+    next if grep { $prop{dist} =~ /^$_$/x } @blacklist;
+
+    my $json = fetch_results($prop{dist});
+    my $versions = $json->{$prop{distvname}};
+    if (q(ARRAY) ne ref $versions) {
+        carp qq($prop{distvname} not tested yet);
+        next;
+    }
+
+    for my $test (@{$versions}) {
+        next if $test->{status}     ne q(PASS);
+        next if $archname
+            and $test->{archname}   ne $Config{archname};   # "x86_64-linux"
+        next if $archname
+            and $test->{osname}     ne $Config{osname};     # "linux"
+        next if $archname
+            and $test->{osvers}     ne $Config{osvers};     # "3.0.0-26-generic"
+        next if $perl
+            and $test->{perl}       ne $Config{version};    # "5.14.2"
+
+        print $name, qq(\n);
+        last;
+    }
+}
+
+sub fetch_results {
+    my ($dist) = @_;
+
+    my $url = sprintf
+        q(http://cpantesters.org/static/distro/%s/%s.js),
+        substr($dist, 0, 1),
+        $dist;
+
+    my $res = $ua->get($url);
+    croak qq($url: $res->{reason})
+        unless $res->{success};
+
+    my $content;
+    if (defined $res->{headers}->{q(content-encoding)}
+            and $res->{headers}->{q(content-encoding)} eq q(gzip)) {
+
+        my $tmp;
+        gunzip \$res->{content} => \$tmp
+            or croak qq($url: $GunzipError);
+
+        $content = $tmp;
+    } else {
+        $content = $res->{content};
+    }
+
+    ($content) = $content =~ /\bvar\s+results\s*=\s*({.*?});/sx;
+    $content =~ s/([{,])(\w+):/$1"$2":/gsx;
+    my $json = eval { decode_json($content) };
+    croak qq($url: $@)
+        if $@
+        or q(HASH) ne ref $json;
+
+    return $json;
+}
+
+=head1 SEE ALSO
+
+=for :list
+* L<cpan-outdated>
+* L<cpanm>
+* L<cpant>
+
+=cut
