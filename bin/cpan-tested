@@ -9,12 +9,15 @@ use warnings qw(all);
 use CPAN::DistnameInfo;
 use Carp qw(carp croak);
 use Config;
+use Data::Dumper;
 use File::Spec::Functions;
 use Getopt::Long;
 use HTTP::Tiny;
 use IO::Uncompress::Gunzip qw(gunzip $GunzipError);
 use JSON::PP qw(decode_json);
 use Pod::Usage qw(pod2usage);
+
+$Data::Dumper::Sortkeys = 1;
 
 # VERSION
 
@@ -89,16 +92,25 @@ Expect B<PASS> from testers with the same C<$Config{perl}>.
 
 =cut
 
-my ($archname, $osname, $osvers, $perl) = qw(0 1 0 1);
+my %match = (
+    archname    => 0,
+    osname      => 1,
+    osvers      => 0,
+    version     => 1,
+);
 Getopt::Long::GetOptions(
     q(h|help)       => \my $help,
     q(b|blacklist=s)=> \my @blacklist,
-    q(archname!)    => \$archname,
-    q(osname!)      => \$osname,
-    q(osvers!)      => \$osvers,
-    q(perl!)        => \$perl,
-) or pod2usage();
+    q(v|verbose)    => \my $verbose,
+    q(archname!)    => \$match{archname},   # "x86_64-linux"
+    q(osname!)      => \$match{osname},     # "linux"
+    q(osvers!)      => \$match{osvers},     # "3.0.0-26-generic"
+    q(perl!)        => \$match{version},    # "5.14.2"
+) or pod2usage(-verbose => 1);
 pod2usage(-verbose => 2) if $help;
+
+print STDERR Dumper \%match
+    if $verbose;
 
 my $ua = HTTP::Tiny->new(
     agent           => q(cpan-tested/) . $main::VERSION,
@@ -122,18 +134,23 @@ while (my $name = <>) {
     }
 
     for my $test (@{$versions}) {
-        next if $test->{status}     ne q(PASS);
-        next if $archname
-            and $test->{archname}   ne $Config{archname};   # "x86_64-linux"
-        next if $archname
-            and $test->{osname}     ne $Config{osname};     # "linux"
-        next if $archname
-            and $test->{osvers}     ne $Config{osvers};     # "3.0.0-26-generic"
-        next if $perl
-            and $test->{perl}       ne $Config{version};    # "5.14.2"
+        # cine qua non
+        next if $test->{status} ne q(PASS);
+        $test->{version} = delete $test->{perl};
 
-        print $name, qq(\n);
-        last;
+        my %cross = map { $match{$_} ? ($_ => 1) : () } keys %match;
+        for my $property (keys %cross) {
+            delete $cross{$property}
+                if $Config{$property} eq $test->{$property};
+        }
+
+        unless (keys %cross) {
+            print STDERR Dumper $test
+                if defined $verbose;
+
+            print $name, qq(\n);
+            last;
+        }
     }
 }
 
@@ -144,6 +161,9 @@ sub fetch_results {
         q(http://cpantesters.org/static/distro/%s/%s.js),
         substr($dist, 0, 1),
         $dist;
+
+    print STDERR "$url\n"
+        if defined $verbose;
 
     my $res = $ua->get($url);
     croak qq($url: $res->{reason})
