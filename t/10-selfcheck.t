@@ -27,7 +27,7 @@ my @reference = <$fh>;
 close $fh;
 is(scalar @reference, 8, q(reference count));
 
-ok(open($fh, q(-|), qq($^X $utility $reference)), q(pipe));
+ok(open($fh, q(-|), qq($^X $utility --no-osname $reference)), q(pipe));
 my @tested = <$fh>;
 close $fh;
 
