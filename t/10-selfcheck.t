@@ -25,9 +25,9 @@ my $fh;
 ok(open($fh, q(<), $reference), q(reference file));
 my @reference = <$fh>;
 close $fh;
-is(scalar @reference, 8, q(reference count));
+is(scalar @reference, 4, q(reference count));
 
-ok(open($fh, q(-|), qq($^X $utility --no-osname $reference)), q(pipe));
+ok(open($fh, q(-|), qq($^X $utility --no-osname --verbose $reference)), q(pipe));
 my @tested = <$fh>;
 close $fh;
 

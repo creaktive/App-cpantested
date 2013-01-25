@@ -113,6 +113,13 @@ Getopt::Long::GetOptions(
 ) or pod2usage(-verbose => 1);
 pod2usage(-verbose => 2) if $help;
 
+%match = map {
+    $match{$_}
+        ? ($_ => $Config{$_})
+        : ()
+} keys %match;
+$match{status} = q(PASS);   # cine qua non
+
 print STDERR Dumper \%match
     if $verbose;
 
@@ -138,17 +145,16 @@ while (my $name = <>) {
     }
 
     for my $test (@{$versions}) {
-        # cine qua non
-        next if $test->{status} ne q(PASS);
         $test->{version} = delete $test->{perl};
 
-        my %cross = map { $match{$_} ? ($_ => 1) : () } keys %match;
-        for my $property (keys %cross) {
-            delete $cross{$property}
-                if $Config{$property} eq $test->{$property};
+        my $ok = 0;
+        while (my ($property, $value) = each %match) {
+            ++$ok
+                if defined $test->{$property}
+                and $value eq $test->{$property};
         }
 
-        unless (keys %cross) {
+        if ($ok == keys %match) {
             print STDERR Dumper $test
                 if defined $verbose;
 
